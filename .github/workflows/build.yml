@@ -9,13 +9,15 @@ jobs:
   build:
     runs-on: ${{ matrix.os }}
     strategy:
-      fail-fast: false # Evita que a falha de um SO cancele o outro
+      fail-fast: false
       matrix:
         include:
           - os: ubuntu-latest
             artifact_name: app-linux
+            output_name: meu-app
           - os: windows-latest
             artifact_name: app-windows
+            output_name: meu-app.exe
 
     steps:
       - name: Baixar repositório
@@ -26,7 +28,6 @@ jobs:
         with:
           python-version: '3.11'
 
-      # Instala as bibliotecas de desenvolvimento do Cairo, GTK e GObject no runner Ubuntu
       - name: Instalar dependências nativas (Linux)
         if: runner.os == 'Linux'
         run: |
@@ -47,7 +48,7 @@ jobs:
 
       - name: Gerar executável
         run: |
-          pyinstaller --clean --noconfirm --onefile src/main.py
+          pyinstaller --clean --noconfirm --onefile --windowed --name ${{ matrix.output_name }} src/main.py
 
       - name: Salvar artefato
         uses: actions/upload-artifact@v4

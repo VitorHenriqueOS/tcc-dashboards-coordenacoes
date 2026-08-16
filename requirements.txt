@@ -3,5 +3,5 @@ openpyxl
 plotly
 pywebview
 pywebview[qt]
-pywebview[gtk]
-Pango
+pywebview[gtk]; sys_platform == 'linux'
+Pango; sys_platform == 'linux'
