@@ -1,9 +1,10 @@
-name: Build Executáveis
+name: Build and Release
 
 on:
   push:
-    branches: [ "main" ]
-  workflow_dispatch:
+    tags:
+      - 'v*' # Dispara automaticamente ao enviar tags como v1.0.0, v1.0.1, etc.
+  workflow_dispatch: # Permite disparar manualmente pelo GitHub
 
 jobs:
   build:
@@ -13,11 +14,11 @@ jobs:
       matrix:
         include:
           - os: ubuntu-latest
-            artifact_name: app-linux
-            output_name: meu-app
+            artifact_name: meu-app-linux
+            output_name: meu-app-linux
           - os: windows-latest
-            artifact_name: app-windows
-            output_name: meu-app.exe
+            artifact_name: meu-app-windows.exe
+            output_name: meu-app-windows.exe
 
     steps:
       - name: Baixar repositório
@@ -46,12 +47,35 @@ jobs:
           pip install pyinstaller
           pip install -r requirements.txt
 
-      - name: Gerar executável
+      - name: Gerar executável com PyInstaller
         run: |
           pyinstaller --clean --noconfirm --onefile --windowed --name ${{ matrix.output_name }} src/main.py
 
-      - name: Salvar artefato
+      - name: Salvar artefato temporário
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.artifact_name }}
-          path: dist/
+          path: dist/${{ matrix.output_name }}
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # Permissão necessária para criar a Release no repositório
+    steps:
+      - name: Baixar código
+        uses: actions/checkout@v4
+
+      - name: Baixar artefatos gerados no build
+        uses: actions/download-artifact@v4
+        with:
+          path: release-assets
+          merge-multiple: true
+
+      - name: Criar Release e anexar executáveis
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            release-assets/meu-app-linux
+            release-assets/meu-app-windows.exe
+          generate_release_notes: true
