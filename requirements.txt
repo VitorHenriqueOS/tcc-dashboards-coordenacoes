@@ -1,0 +1,7 @@
+pandas
+openpyxl
+plotly
+pywebview
+pywebview[qt]
+pywebview[gtk]
+Pango

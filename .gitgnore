@@ -1,0 +1,10 @@
+# Pastas a ignorar
+data/
+venv/
+__pycache__/
+*.pyc
+
+# Pastas de build geradas localmente
+build/
+dist/
+*.spec
