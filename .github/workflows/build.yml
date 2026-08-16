@@ -3,20 +3,19 @@ name: Build Executáveis
 on:
   push:
     branches: [ "main" ]
-  workflow_dispatch: # Permite disparar o build manualmente pelo painel do GitHub
+  workflow_dispatch:
 
 jobs:
   build:
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false # Evita que a falha de um SO cancele o outro
       matrix:
         include:
           - os: ubuntu-latest
             artifact_name: app-linux
-            output_file: dist/*
           - os: windows-latest
             artifact_name: app-windows
-            output_file: dist/*.exe
 
     steps:
       - name: Baixar repositório
@@ -25,20 +24,33 @@ jobs:
       - name: Configurar Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.14.6'
+          python-version: '3.11'
 
-      - name: Instalar dependências
+      # Instala as bibliotecas de desenvolvimento do Cairo, GTK e GObject no runner Ubuntu
+      - name: Instalar dependências nativas (Linux)
+        if: runner.os == 'Linux'
         run: |
-          python -m pip install --upgrade pip
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential \
+            pkg-config \
+            libcairo2-dev \
+            libgirepository1.0-dev \
+            libgtk-3-dev \
+            gir1.2-webkit2-4.1
+
+      - name: Instalar dependências Python
+        run: |
+          python -m pip install --upgrade pip setuptools wheel
           pip install pyinstaller
           pip install -r requirements.txt
 
-      - name: Gerar executável com PyInstaller
+      - name: Gerar executável
         run: |
-          pyinstaller --onefile src/main.py
+          pyinstaller --clean --noconfirm --onefile src/main.py
 
       - name: Salvar artefato
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.artifact_name }}
-          path: ${{ matrix.output_file }}
+          path: dist/
