@@ -21,6 +21,9 @@ concurrency:
 env:
   NOME_APP: DashboardsCoordenacoes
   PYTHON_VERSION: '3.13'
+  # 'true': cada nova Release substitui a anterior (economiza espaço)
+  # 'false': guarda todas as versões
+  MANTER_SO_A_ULTIMA: 'true'
 
 jobs:
   build:
@@ -100,6 +103,8 @@ jobs:
           name: ${{ env.NOME_APP }}-${{ matrix.sistema }}
           path: pacote/*
           if-no-files-found: error
+          # Os executáveis são grandes (~300 MB); artefatos antigos ocupam a cota de armazenamento
+          retention-days: 7
 
   release:
     name: Publicar Release
@@ -121,3 +126,20 @@ jobs:
           files: release-assets/*
           generate_release_notes: true
           fail_on_unmatched_files: true
+
+      # Mantém só a Release recém-criada: apaga as anteriores e suas tags
+      # (configurável em MANTER_SO_A_ULTIMA, no topo do arquivo)
+      - name: Remover Releases anteriores
+        if: env.MANTER_SO_A_ULTIMA == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          TAG_ATUAL: ${{ github.ref_name }}
+        run: |
+          gh release list --repo "$REPO" --limit 100 --json tagName --jq '.[].tagName' |
+          while read -r tag; do
+            if [ "$tag" != "$TAG_ATUAL" ]; then
+              echo "Removendo Release $tag"
+              gh release delete "$tag" --repo "$REPO" --yes --cleanup-tag
+            fi
+          done
