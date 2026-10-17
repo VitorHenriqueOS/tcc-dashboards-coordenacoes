@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="menu.css">
+</head>
+<body>
+    <h1>Painel de Controle</h1>
+
+    <div class="upload-section">
+        <p>Faça o upload de uma ou mais planilhas (Oferta, Reprovados, Percentual ENADE ou Evadidos) simultaneamente.</p>
+        <button type="button" class="link-relatorios" onclick="abrirModalRelatorios()">
+            <i class="icone-info" aria-hidden="true">i</i> Ver lista de relatórios suportados
+        </button>
+        <br>
+        <button class="btn btn-upload" onclick="carregarPlanilhaGeral(event)">  Selecionar Planilhas</button>
+        <div id="msg-box"></div>
+    </div>
+
+    <div class="cards-container">
+        <div class="card">
+            <h2>Oferta de Disciplinas</h2>
+
+            <div class="status-container">
+                <div class="status-row">
+                    <div id="dot-oferta" class="status-dot status-red"></div>
+                    <span id="txt-oferta">Aguardando Dados</span>
+                </div>
+                <div class="last-update" id="date-oferta">Requer o relatório 11.02.03.80.06</div>
+            </div>
+            <button id="btn-oferta" class="btn btn-open" onclick="pywebview.api.abrir_oferta()" disabled>  Abrir Dashboard</button>
+        </div>
+
+        <div class="card">
+            <h2>Percentual ENADE</h2>
+
+            <div class="status-container">
+                <div class="status-row">
+                    <div id="dot-enade" class="status-dot status-red"></div>
+                    <span id="txt-enade">Aguardando Dados</span>
+                </div>
+                <div class="last-update" id="date-enade">Requer o relatório 11.02.02.99.09</div>
+            </div>
+            <button id="btn-enade" class="btn btn-open" onclick="pywebview.api.abrir_enade()" disabled>  Abrir Dashboard</button>
+        </div>
+
+        <div class="card">
+            <h2>Evasão e Titulação</h2>
+
+            <div class="status-container">
+                <div class="status-row">
+                    <div id="dot-evadidos" class="status-dot status-red"></div>
+                    <span id="txt-evadidos">Aguardando Dados</span>
+                </div>
+                <div class="last-update" id="date-evadidos">Requer o relatório 11.02.02.80.04</div>
+            </div>
+            <button id="btn-evadidos" class="btn btn-open" onclick="pywebview.api.abrir_evadidos()" disabled>  Abrir Dashboard</button>
+        </div>
+    </div>
+
+    <div id="modal-relatorios" class="modal" role="dialog" aria-modal="true" aria-labelledby="titulo-relatorios">
+        <div class="modal-content">
+            <button type="button" class="close-btn" onclick="fecharModalRelatorios()" aria-label="Fechar">&times;</button>
+            <h3 id="titulo-relatorios">Relatórios suportados</h3>
+            <p class="intro">Gere estes relatórios no SG e envie as planilhas pelo botão "Selecionar Planilhas".</p>
+            <table class="tabela-relatorios">
+                <thead>
+                    <tr><th>Código</th><th>Nome no SG</th></tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td class="codigo">11.02.03.80.06</td>
+                        <td>Oferta de Disciplinas<span class="painel">Libera o painel Oferta de Disciplinas</span></td>
+                    </tr>
+                    <tr>
+                        <td class="codigo">11.02.02.99.09</td>
+                        <td>Alunos por curso UFU - % integralização (ENADE)<span class="painel">Libera o painel Percentual ENADE</span></td>
+                    </tr>
+                    <tr>
+                        <td class="codigo">11.02.02.80.04</td>
+                        <td>Alunos Evadidos por Curso e Ano<span class="painel">Libera o painel Evasão e Titulação</span></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <script src="menu.js"></script>
+</body>
+</html>

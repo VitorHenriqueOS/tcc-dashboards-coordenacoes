@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+    <link rel="stylesheet" href="alunos.css">
+</head>
+<body>
+    <div class="header">
+        <h2>{{ titulo }}</h2>
+        <div class="header-actions">
+            <div class="filtros-group">
+                <div class="filtro-item">
+                    <label for="busca-curso"><strong>Curso: </strong></label>
+                    <div class="busca-curso">
+                        <input type="text" id="busca-curso" placeholder="Todos (digite para pesquisar)"
+                               autocomplete="off" role="combobox" aria-expanded="false" aria-controls="lista-cursos">
+                        <button type="button" class="busca-limpar" id="busca-limpar" title="Mostrar todos os cursos">&times;</button>
+                        <ul class="busca-lista" id="lista-cursos" role="listbox"></ul>
+                    </div>
+                </div>
+                <div class="filtro-item">
+                    <label for="seletor-sexo"><strong>Sexo: </strong></label>
+                    <select id="seletor-sexo"></select>
+                </div>
+            </div>
+            <button class="btn btn-alunos" onclick="abrirAlunos()" title="Ver os alunos do filtro selecionado">Ver Alunos</button>
+            <button class="btn btn-help" onclick="abrirModal()" title="Entenda os termos">?</button>
+            <button class="btn btn-voltar" onclick="pywebview.api.voltar_menu()">Voltar</button>
+        </div>
+    </div>
+
+    <div id="modal-alunos" class="modal">
+        <div class="alunos-content">
+            <span class="close-btn" onclick="fecharAlunos()">&times;</span>
+            <h3>Alunos</h3>
+            <div class="alunos-filtro" id="alunos-filtro"></div>
+            <div class="alunos-barra">
+                <input type="text" id="busca-aluno" placeholder="Pesquisar por nome ou matrícula" autocomplete="off">
+                <span class="alunos-contagem" id="alunos-contagem"></span>
+                <button class="btn btn-exportar" id="btn-exportar" onclick="exportarAlunos()"
+                        title="Exporta todos os alunos do filtro com os dados cadastrais e acadêmicos">Exportar CSV</button>
+            </div>
+            <div class="alunos-status" id="alunos-status"></div>
+            <div class="tabela-wrap">
+                <table class="tabela-alunos">
+                    <thead><tr id="alunos-cabecalho"></tr></thead>
+                    <tbody id="alunos-corpo"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-ajuda" class="modal">
+        <div class="modal-content">
+            <span class="close-btn" onclick="fecharModal()">&times;</span>
+            <h3 style="margin-top: 0; color: #2c3e50;">Glossário de Termos</h3>
+{{ glossario }}
+        </div>
+    </div>
+
+    <div class="filtros-grafico" id="filtros-grafico"></div>
+    <div id="secao-painel" style="display: none;">
+{{ conteudo }}
+    </div>
+    <div id="aviso-painel" class="aviso" style="display: none;"></div>
+
+    <script id="config-painel" type="application/json">{{ config }}</script>
+    <script src="alunos.js"></script>
+</body>
+</html>

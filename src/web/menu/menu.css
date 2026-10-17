@@ -1,0 +1,96 @@
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #f4f7f6;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: flex-start;
+    height: 100vh; margin: 0; padding-top: 50px; box-sizing: border-box;
+}
+h1 { color: #2c3e50; margin-bottom: 20px; font-size: 32px; }
+
+.upload-section {
+    background: white; padding: 25px 40px; border-radius: 12px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.05); text-align: center;
+    margin-bottom: 40px; max-width: 600px;
+    border: 2px dashed #bdc3c7;
+}
+.upload-section p { color: #7f8c8d; font-size: 14px; margin-bottom: 20px; }
+
+.cards-container { display: flex; gap: 30px; flex-wrap: wrap; justify-content: center;}
+
+.card {
+    background: white; padding: 30px; border-radius: 12px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    display: flex; flex-direction: column; align-items: center;
+    width: 280px; text-align: center; border-top: 4px solid #3498db;
+}
+.card h2 { color: #34495e; margin-top: 0; font-size: 20px; margin-bottom: 20px;}
+
+.status-container {
+    display: flex; flex-direction: column; align-items: center; gap: 5px; margin-bottom: 20px;
+    background: #f8f9fa; padding: 12px 15px; border-radius: 12px; width: 80%;
+}
+
+.status-row {
+    display: flex; align-items: center; gap: 8px; font-size: 15px; font-weight: bold; color: #7f8c8d;
+}
+.status-dot { width: 12px; height: 12px; border-radius: 50%; }
+.status-red { background-color: #e74c3c; box-shadow: 0 0 5px rgba(231, 76, 60, 0.4); }
+.status-green { background-color: #2ecc71; box-shadow: 0 0 5px rgba(46, 204, 113, 0.4); }
+
+.last-update { font-size: 11px; color: #95a5a6; font-weight: normal; margin-top: 2px;}
+.btn {
+    padding: 12px 20px; font-size: 15px; cursor: pointer;
+    border: none; border-radius: 6px; font-weight: bold;
+    width: 100%; transition: 0.2s;
+}
+.btn-upload { background-color: #34495e; color: white; max-width: 300px; }
+.btn-upload:hover { background-color: #2c3e50; transform: translateY(-2px); }
+
+.btn-open { background-color: #3498db; color: white; box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin-top: 10px; }
+.btn-open:hover:not(:disabled) { background-color: #2980b9; transform: translateY(-2px); }
+.btn-open:disabled { background-color: #bdc3c7; cursor: not-allowed; box-shadow: none; opacity: 0.8; }
+
+#msg-box {
+    margin-top: 20px; padding: 15px 25px; border-radius: 8px;
+    display: none; max-width: 600px; text-align: center; font-weight: bold;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+}
+.link-relatorios {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: none; border: none; padding: 0; margin: -8px 0 20px;
+    color: #2980b9; font-size: 13px; cursor: pointer; font-family: inherit;
+}
+.link-relatorios:hover { text-decoration: underline; }
+.link-relatorios:focus-visible { outline: 2px solid #3498db; outline-offset: 3px; border-radius: 3px; }
+.icone-info {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 16px; height: 16px; border-radius: 50%; border: 1.5px solid currentColor;
+    font-size: 11px; font-weight: bold; font-style: normal; line-height: 1;
+}
+.modal {
+    display: none; position: fixed; z-index: 1000; left: 0; top: 0;
+    width: 100%; height: 100%; background-color: rgba(0,0,0,0.5);
+}
+.modal-content {
+    background-color: #fff; margin: 10% auto; padding: 25px;
+    border-radius: 8px; width: 90%; max-width: 560px; position: relative;
+    box-sizing: border-box;
+}
+.modal-content h3 { margin-top: 0; color: #2c3e50; }
+.modal-content .intro { color: #7f8c8d; font-size: 13px; margin-top: -5px; }
+.close-btn {
+    position: absolute; top: 15px; right: 20px; font-size: 24px;
+    font-weight: bold; color: #aaa; cursor: pointer;
+    background: none; border: none; padding: 0; line-height: 1;
+}
+.close-btn:hover { color: #333; }
+.tabela-relatorios { width: 100%; border-collapse: collapse; font-size: 14px; }
+.tabela-relatorios th {
+    text-align: left; font-size: 12px; color: #7f8c8d; font-weight: 600;
+    padding: 8px 10px; border-bottom: 2px solid #ecf0f1;
+}
+.tabela-relatorios td { padding: 10px; border-bottom: 1px solid #ecf0f1; vertical-align: top; color: #34495e; }
+.tabela-relatorios .codigo { font-weight: bold; white-space: nowrap; color: #2c3e50; }
+.tabela-relatorios .painel { font-size: 12px; color: #95a5a6; display: block; margin-top: 2px; }
+.msg-erro { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+.msg-sucesso { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }

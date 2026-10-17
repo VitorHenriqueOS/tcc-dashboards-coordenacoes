@@ -1,7 +1,11 @@
-pandas
-openpyxl
-plotly
-pywebview
-pywebview[qt]
-pywebview[gtk]; sys_platform == 'linux'
-Pango; sys_platform == 'linux'
+# Dependências do aplicativo (versões testadas)
+pandas==3.0.2
+openpyxl==3.1.5
+plotly==6.6.0
+pywebview==6.1
+
+# Linux: a janela usa Qt (PyQt6 + QtWebEngine), instalado direto pelo pip.
+# No Windows o pywebview usa o Edge WebView2, que já vem no sistema.
+PyQt6==6.11.0; sys_platform == 'linux'
+PyQt6-WebEngine==6.11.0; sys_platform == 'linux'
+QtPy==2.4.3; sys_platform == 'linux'

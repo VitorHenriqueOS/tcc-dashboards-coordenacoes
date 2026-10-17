@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+    <link rel="stylesheet" href="oferta.css">
+</head>
+<body>
+    <div class="header">
+        <h2>Visão Geral da Oferta de Disciplinas</h2>
+        <div class="header-actions">
+            <div class="filtros-group" id="container-filtros" style="display: none;">
+                <div class="filtro-item">
+                    <label for="seletor-unidade"><strong>Unidade: </strong></label>
+                    <select id="seletor-unidade"></select>
+                </div>
+                <div class="filtro-item">
+                    <label for="seletor-curso"><strong>Curso: </strong></label>
+                    <select id="seletor-curso"></select>
+                </div>
+            </div>
+            <button class="btn btn-help" onclick="abrirModal()" title="Entenda os termos">?</button>
+            <button class="btn btn-voltar" onclick="pywebview.api.voltar_menu()">Voltar</button>
+        </div>
+    </div>
+
+    <!-- BARRA DE FILTROS CRUZADOS ATIVOS -->
+    <div id="filtros-ativos-container" style="display: none; margin-bottom: 20px; gap: 10px; align-items: center; flex-wrap: wrap; background: #fff; padding: 12px 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); border-left: 4px solid #f39c12;">
+        <span style="font-size: 13px; font-weight: bold; color: #7f8c8d;">Filtros Visuais Ativos:</span>
+        <div id="badges-filtros" style="display: flex; gap: 10px; flex-wrap: wrap;"></div>
+        <button onclick="limparFiltrosCruzados()" style="padding: 6px 12px; font-size: 12px; background: #e74c3c; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; transition: 0.2s;">Limpar Todos</button>
+    </div>
+
+    <div id="modal-ajuda" class="modal">
+        <div class="modal-content">
+            <span class="close-btn" onclick="fecharModal()">&times;</span>
+            <h3 style="margin-top: 0; color: #2c3e50;">Glossário de Termos</h3>
+            <p><strong>Trabalho Docente:</strong> Vagas Ocupadas em disciplinas ministradas pelo docente.</p>
+            <p><strong>Média de Vagas / Docente:</strong> Relação calculada entre o total de vagas e a quantidade de docentes no filtro atual.</p>
+            <p><strong>Taxa de Ocupação:</strong> Razão entre Vagas Ocupadas e Vagas Oferecidas por disciplina.</p>
+            <p><strong>Reprovações:</strong> Dados consolidados de reprovação por nota e falta da turma (requer upload da planilha opcional correspondente).</p>
+            <hr>
+            <h4 style="margin-bottom: 5px;">Status de Lançamento de Notas (Eixo Y):</h4>
+            <ul style="margin-top: 5px;">
+                <li>  <b>Check Verde:</b> Todas as turmas lançaram notas.</li>
+                <li>  <b>Alerta Amarelo:</b> Progresso parcial (algumas turmas lançaram, outras não).</li>
+                <li>  <b>Xis Vermelho:</b> Nenhuma turma lançou.</li>
+            </ul>
+            <p><em>  Dica: Clique na barra da disciplina para ver os detalhes individuais das turmas.</em></p>
+        </div>
+    </div>
+
+    <div class="kpi-container">
+        <div class="kpi-card">
+            <div class="kpi-title">Total de Vagas Ocupadas</div>
+            <div class="kpi-value" id="kpi-vagas">...</div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-title">Docentes Alocados</div>
+            <div class="kpi-value" id="kpi-docentes">...</div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-title">Média de Vagas / Docente</div>
+            <div class="kpi-value" id="kpi-media">...</div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-title">Notas Lançadas</div>
+            <div class="kpi-value" id="kpi-notas">...</div>
+        </div>
+    </div>
+    <div class="charts-grid">
+
+        <!-- 1. GRÁFICO: TAXA DE OCUPAÇÃO -->
+        <div class="chart-box">
+            <div class="chart-header">
+                <h3 class="chart-title">Taxa de Ocupação por Disciplina</h3>
+                <div class="chart-controls">
+                    <!-- Placeholder atualizado para avisar sobre pesquisa por código -->
+                    <input type="text" id="search-taxa" class="search-input" placeholder="Pesquisar disciplina ou código..." oninput="filtrarTaxa()">
+                    <select id="sort-taxa" class="sort-select" onchange="filtrarTaxa()">
+                        <option value="desc">Maior Taxa no Topo</option>
+                        <option value="asc">Menor Taxa no Topo</option>
+                        <option value="az">Ordem Alfabética (A-Z)</option>
+                    </select>
+                </div>
+            </div>
+            <div class="master-detail-content">
+                <div class="col-chart">
+                    <div id="grafico-taxa"></div>
+                </div>
+                <div class="col-details">
+                    <h4 style="margin-top: 0; font-size: 14px; color: #34495e; border-bottom: 2px solid #3498db; padding-bottom: 8px;">Detalhes das Turmas</h4>
+                    <p id="instrucao-detalhes" style="font-size: 13px; color: #7f8c8d; text-align: center; margin-top: 40px;">
+                          Clique em uma barra do gráfico de Ocupação para visualizar os horários, status e reprovações de cada turma.
+                    </p>
+                    <div id="lista-detalhes"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 2. GRÁFICO: HEATMAP DE DISTRIBUIÇÃO TEMPORAL -->
+        <div class="chart-box" style="height: auto;">
+            <div class="chart-header" style="flex-direction: column; align-items: flex-start; padding-bottom: 8px;">
+                <h3 class="chart-title">Distribuição de Turmas por Dia e Horário</h3>
+                <div id="kpi-horarios" style="font-size: 12px; color: #7f8c8d; margin-top: 5px;"></div>
+            </div>
+            <div style="padding: 10px; overflow-y: auto;">
+                <div id="grafico-heatmap"></div>
+            </div>
+        </div>
+
+        <!-- 3. GRÁFICO: TRABALHO DOCENTE -->
+        <div class="chart-box" style="height: auto;">
+            <div class="chart-header">
+                <h3 class="chart-title">Trabalho Docente</h3>
+                <div class="chart-controls">
+                    <input type="text" id="search-docente" class="search-input" placeholder="Pesquisar docente..." oninput="filtrarDocente()">
+                    <select id="sort-docente" class="sort-select" onchange="filtrarDocente()">
+                        <option value="desc">Mais Vagas no Topo</option>
+                        <option value="asc">Menos Vagas no Topo</option>
+                        <option value="az">Ordem Alfabética (A-Z)</option>
+                    </select>
+                </div>
+            </div>
+            <div style="padding: 10px; overflow-y: auto; max-height: 500px;">
+                <div id="grafico-trabalho"></div>
+            </div>
+        </div>
+    </div>
+    <script src="oferta.js"></script>
+</body>
+</html>

@@ -1,10 +1,23 @@
-# Pastas a ignorar
-data/
+# Ambiente virtual e cache do Python
 venv/
+.venv/
 __pycache__/
 *.pyc
 
-# Pastas de build geradas localmente
+# Dados carregados pelo aplicativo (cache local das planilhas)
+data/
+
+# Planilhas originais: contêm dados pessoais de alunos (CPF, RG, endereço)
+src/dataset/
+*.xlsx
+*.xls
+*.csv
+
+# Gerados pelo PyInstaller
 build/
 dist/
 *.spec
+
+# Configurações pessoais da IDE
+.idea/workspace.xml
+.vscode/
