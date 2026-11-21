@@ -7,6 +7,10 @@ class DashboardApi:
     """
     Classe contendo a lógica de processamento dos dados (Controller / Model)
     """
+    # Horários de início das aulas de 50 minutos da grade padrão
+    SLOTS_INICIO = ['07:10', '08:00', '08:50', '09:50', '10:40', '11:30', '13:10', '14:00', '14:50',
+                    '16:00', '16:50', '17:40', '18:10', '19:00', '19:50', '20:50', '21:40']
+
     def __init__(self, df, df_reprovados=None):
         self._df = df
         self._df_reprovados = df_reprovados
@@ -76,6 +80,36 @@ class DashboardApi:
             df_filtrado['_HR_INICIO'] = df_filtrado['HR_INICIO'].apply(format_time_global)
         else:
             df_filtrado['_HR_INICIO'] = None
+
+        if 'HR_FIM' in df_filtrado.columns:
+            df_filtrado['_HR_FIM'] = df_filtrado['HR_FIM'].apply(format_time_global)
+        else:
+            df_filtrado['_HR_FIM'] = None
+
+        # --- Expansão de cada linha nos horários-aula (slots) entre HR_INICIO e HR_FIM ---
+        def hhmm_para_min(val):
+            if not isinstance(val, str): return None
+            m = re.match(r'^(\d{1,2}):(\d{2})$', val.strip())
+            if not m: return None
+            return int(m.group(1)) * 60 + int(m.group(2))
+
+        inicios_dataset = [h for h in df_filtrado['_HR_INICIO'].dropna().unique() if hhmm_para_min(h) is not None]
+        slots_grade = sorted(set(self.SLOTS_INICIO) | set(inicios_dataset), key=hhmm_para_min)
+        slots_grade_min = [(sl, hhmm_para_min(sl)) for sl in slots_grade]
+
+        def slots_ocupados(hr_inicio, hr_fim):
+            if hr_inicio is None or pd.isna(hr_inicio): return [None]
+            min_ini, min_fim = hhmm_para_min(hr_inicio), hhmm_para_min(hr_fim)
+            if min_ini is None or min_fim is None or min_fim <= min_ini:
+                return [hr_inicio]
+            slots = [sl for sl, m in slots_grade_min if min_ini <= m < min_fim]
+            return slots or [hr_inicio]
+
+        def expandir_slots(df):
+            """Retorna uma cópia com uma linha por slot ocupado (coluna _SLOT_HORARIO)."""
+            df = df.copy()
+            df['_SLOT_HORARIO'] = [slots_ocupados(i, f) for i, f in zip(df['_HR_INICIO'], df['_HR_FIM'])]
+            return df.explode('_SLOT_HORARIO')
             
         def parse_dia(d):
             if pd.isna(d) or str(d).lower() in ['nan', 'nat', 'none', '<na>']: return None
@@ -100,12 +134,17 @@ class DashboardApi:
         # Salva o panorama atual para gerar o Heatmap sem que ele mesmo colapse para 1 célula
         df_heatmap_base = df_filtrado.copy()
             
+        # Chave composta de identificação de turma única: evita colapsar turmas de cursos
+        # distintos (ex.: Mestrado/Doutorado) com mesmo nome de disciplina e código de turma.
+        cols_turma_unica = [c for c in ['COD_CURSO', 'COD_DISCIPLINA', 'COD_TURMA', 'NOME_DISCIPLINA'] if c in df_filtrado.columns]
+
         if dia_filtro and horario_filtro:
             # Encontra as turmas únicas que acontecem nesse dia e horário
-            mask = (df_filtrado['_DIA_ABREV'] == dia_filtro) & (df_filtrado['_HR_INICIO'] == horario_filtro)
-            turmas_alvo = df_filtrado[mask][['NOME_DISCIPLINA', 'COD_TURMA']].drop_duplicates()
+            # (considera todo o intervalo [HR_INICIO, HR_FIM) de cada linha, não apenas o início)
+            df_slots = expandir_slots(df_filtrado[df_filtrado['_DIA_ABREV'] == dia_filtro])
+            turmas_alvo = df_slots[df_slots['_SLOT_HORARIO'] == horario_filtro][cols_turma_unica].drop_duplicates()
             # Mantém a grade integral da classe (inner join) para visualizar o card de detalhes corretamente
-            df_filtrado = df_filtrado.merge(turmas_alvo, on=['NOME_DISCIPLINA', 'COD_TURMA'], how='inner')
+            df_filtrado = df_filtrado.merge(turmas_alvo, on=cols_turma_unica, how='inner')
 
         # --- Lógica de Lançamento de Notas (KPI e Status) ---
         def is_lancado(sit):
@@ -300,15 +339,24 @@ class DashboardApi:
         }
         
         # Base de turmas para a notificação de preenchimento
-        total_turmas_unicas = df_heatmap_base[['NOME_DISCIPLINA', 'COD_TURMA']].drop_duplicates().shape[0]
-        df_heat = df_heatmap_base.dropna(subset=['_DIA_ABREV', '_HR_INICIO'])
+        total_turmas_unicas = df_heatmap_base[cols_turma_unica].drop_duplicates().shape[0]
+        df_heat = expandir_slots(df_heatmap_base.dropna(subset=['_DIA_ABREV', '_HR_INICIO']))
+        df_heat = df_heat.dropna(subset=['_SLOT_HORARIO'])
         
         if not df_heat.empty:
-            turmas_com_horario = df_heat[['NOME_DISCIPLINA', 'COD_TURMA']].drop_duplicates().shape[0]
+            turmas_com_horario = df_heat[cols_turma_unica].drop_duplicates().shape[0]
             nota_horarios = f"{turmas_com_horario} de {total_turmas_unicas} turmas possuem horário informado."
             
-            heat_agg = df_heat.groupby(['_DIA_ABREV', '_HR_INICIO']).apply(lambda x: x[['NOME_DISCIPLINA', 'COD_TURMA']].drop_duplicates().shape[0]).reset_index(name='COUNT')
-            pivot_heat = heat_agg.pivot(index='_HR_INICIO', columns='_DIA_ABREV', values='COUNT').fillna(0)
+            # Agrupa por (dia, slot) e deduplica turmas dentro de cada célula:
+            # uma aula contínua conta em todos os slots que cobre; linhas repetidas ou
+            # fracionadas que caem no mesmo dia/slot (ex.: co-docência) contam uma única vez.
+            heat_agg = (
+                df_heat.drop_duplicates(subset=['_DIA_ABREV', '_SLOT_HORARIO'] + cols_turma_unica)
+                .groupby(['_DIA_ABREV', '_SLOT_HORARIO'])
+                .size()
+                .reset_index(name='COUNT')
+            )
+            pivot_heat = heat_agg.pivot(index='_SLOT_HORARIO', columns='_DIA_ABREV', values='COUNT').fillna(0)
             
             map_dias_sort = {'Seg': 1, 'Ter': 2, 'Qua': 3, 'Qui': 4, 'Sex': 5, 'Sáb': 6, 'Dom': 7}
             dias_presentes = sorted(pivot_heat.columns, key=lambda d: map_dias_sort.get(d, 99))
