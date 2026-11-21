@@ -15,8 +15,13 @@
                     <select id="seletor-unidade"></select>
                 </div>
                 <div class="filtro-item">
-                    <label for="seletor-curso"><strong>Curso: </strong></label>
-                    <select id="seletor-curso"></select>
+                    <label for="busca-curso"><strong>Curso: </strong></label>
+                    <div class="busca-curso">
+                        <input type="text" id="busca-curso" placeholder="Todos (digite para pesquisar)"
+                               autocomplete="off" role="combobox" aria-expanded="false" aria-controls="lista-cursos">
+                        <button type="button" class="busca-limpar" id="busca-limpar" title="Mostrar todos os cursos">&times;</button>
+                        <ul class="busca-lista" id="lista-cursos" role="listbox"></ul>
+                    </div>
                 </div>
             </div>
             <button class="btn btn-help" onclick="abrirModal()" title="Entenda os termos">?</button>

@@ -19,6 +19,32 @@ select {
     font-size: 14px; outline: none; cursor: pointer; min-width: 120px;
 }
 
+/* ---------- Busca de curso (combobox) ---------- */
+.busca-curso { position: relative; width: 340px; }
+.busca-curso input {
+    width: 100%; box-sizing: border-box; padding: 8px 30px 8px 10px;
+    border: 1px solid #ccc; border-radius: 4px; font-size: 14px; outline: none;
+}
+.busca-curso input:focus { border-color: #3498db; box-shadow: 0 0 0 2px rgba(52,152,219,0.2); }
+.busca-limpar {
+    position: absolute; right: 6px; top: 50%; transform: translateY(-50%);
+    border: none; background: none; font-size: 18px; color: #95a5a6;
+    cursor: pointer; padding: 0 4px; display: none;
+}
+.busca-limpar:hover { color: #e74c3c; }
+.busca-lista {
+    position: absolute; top: calc(100% + 4px); left: 0; right: 0; z-index: 500;
+    max-height: 360px; overflow-y: auto; margin: 0; padding: 4px 0; list-style: none;
+    background: #fff; border: 1px solid #ddd; border-radius: 6px;
+    box-shadow: 0 6px 16px rgba(0,0,0,0.12); display: none;
+}
+.busca-lista li { padding: 7px 12px; font-size: 13px; cursor: pointer; color: #2c3e50; }
+.busca-lista li small { display: block; color: #95a5a6; font-size: 11px; margin-top: 1px; }
+.busca-lista li.ativo, .busca-lista li:hover { background: #eaf4fc; }
+.busca-lista li.selecionado { font-weight: bold; color: #2980b9; }
+.busca-lista li.vazio { color: #95a5a6; cursor: default; background: none; }
+.busca-lista mark { background: #fdebd0; color: inherit; padding: 0; }
+
 .btn {
     padding: 10px 15px; border: none; border-radius: 5px;
     cursor: pointer; font-weight: bold; font-size: 14px; transition: 0.2s;

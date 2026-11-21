@@ -53,7 +53,6 @@ function limparFiltrosCruzados() {
 window.addEventListener('pywebviewready', async function() {
     const unidades = await pywebview.api.get_unidades();
     const seletorUnidade = document.getElementById('seletor-unidade');
-    const seletorCurso = document.getElementById('seletor-curso');
     if (unidades.length > 0) {
         unidades.forEach(uni => {
             const opt = document.createElement('option');
@@ -70,8 +69,8 @@ window.addEventListener('pywebviewready', async function() {
             limparFiltrosCruzados(); // Dispara o carregarPainel nativamente sem acúmulo
             await atualizarListaCursos();
         });
-        seletorCurso.addEventListener('change', async (e) => {
-            estadoFiltro.curso = e.target.value;
+        iniciarBuscaCurso((curso) => {
+            estadoFiltro.curso = curso;
             limparFiltrosCruzados();
         });
         await atualizarListaCursos();
@@ -83,15 +82,115 @@ window.addEventListener('pywebviewready', async function() {
 
 async function atualizarListaCursos() {
     const cursos = await pywebview.api.get_cursos(estadoFiltro.unidade);
-    const seletorCurso = document.getElementById('seletor-curso');
-    seletorCurso.innerHTML = "";
+    definirCursos(cursos);
+}
 
-    cursos.forEach(c => {
-        const opt = document.createElement('option');
-        opt.value = c; opt.textContent = c;
-        seletorCurso.appendChild(opt);
+// ================= BUSCA DE CURSO =================
+function semAcento(str) {
+    return (str || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+}
+function escaparHtml(str) {
+    return (str || '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+}
+function destacar(texto, termos) {
+    // Destaca os trechos pesquisados sem depender de acentos
+    let html = escaparHtml(texto);
+    const base = semAcento(texto);
+    const marcas = [];
+    termos.forEach(t => {
+        let i = base.indexOf(t);
+        while (t && i !== -1) { marcas.push([i, i + t.length]); i = base.indexOf(t, i + t.length); }
     });
-    seletorCurso.value = estadoFiltro.curso;
+    if (!marcas.length) return html;
+    marcas.sort((a, b) => a[0] - b[0]);
+    let out = '', pos = 0;
+    marcas.forEach(([ini, fim]) => {
+        if (ini < pos) return;
+        out += escaparHtml(texto.slice(pos, ini)) + '<mark>' + escaparHtml(texto.slice(ini, fim)) + '</mark>';
+        pos = fim;
+    });
+    return out + escaparHtml(texto.slice(pos));
+}
+
+// Substituída por iniciarBuscaCurso; recebe a lista de cursos da unidade atual
+let definirCursos = () => {};
+
+function iniciarBuscaCurso(aoEscolher) {
+    const input = document.getElementById('busca-curso');
+    const lista = document.getElementById('lista-cursos');
+    const btnLimpar = document.getElementById('busca-limpar');
+    let itens = [];
+    let visiveis = [];
+    let ativo = -1;
+
+    function rotuloAtual() {
+        const it = itens.find(i => i.valor === estadoFiltro.curso);
+        return (!it || it.valor === 'Todos') ? '' : it.rotulo;
+    }
+
+    function renderizar() {
+        // Cada palavra digitada precisa aparecer no nome, em qualquer ordem
+        const termos = semAcento(input.value).split(/\s+/).filter(Boolean);
+        visiveis = itens.filter(i => termos.every(t => i.chave.includes(t)));
+        lista.innerHTML = '';
+        if (!visiveis.length) {
+            lista.innerHTML = '<li class="vazio">Nenhum curso encontrado</li>';
+        }
+        visiveis.forEach((it, idx) => {
+            const li = document.createElement('li');
+            li.setAttribute('role', 'option');
+            if (it.valor === estadoFiltro.curso) li.classList.add('selecionado');
+            if (idx === ativo) li.classList.add('ativo');
+            li.innerHTML = destacar(it.rotulo, termos) +
+                (it.valor !== it.rotulo ? '<small>' + destacar(it.valor, termos) + '</small>' : '');
+            li.addEventListener('mousedown', (e) => { e.preventDefault(); escolher(it); });
+            lista.appendChild(li);
+        });
+        const liAtivo = lista.querySelector('li.ativo');
+        if (liAtivo) liAtivo.scrollIntoView({block: 'nearest'});
+    }
+
+    function abrir() {
+        lista.style.display = 'block';
+        input.setAttribute('aria-expanded', 'true');
+        renderizar();
+    }
+    function fechar() {
+        lista.style.display = 'none';
+        input.setAttribute('aria-expanded', 'false');
+        ativo = -1;
+        input.value = rotuloAtual();
+        input.title = estadoFiltro.curso;
+        btnLimpar.style.display = estadoFiltro.curso !== 'Todos' ? 'block' : 'none';
+    }
+    function escolher(it) {
+        const mudou = estadoFiltro.curso !== it.valor;
+        if (mudou) aoEscolher(it.valor);
+        fechar();
+        input.blur();
+    }
+
+    input.addEventListener('focus', () => { input.select(); ativo = -1; abrir(); });
+    input.addEventListener('input', () => { ativo = visiveis.length ? 0 : -1; abrir(); ativo = visiveis.length ? 0 : -1; renderizar(); });
+    input.addEventListener('blur', fechar);
+    input.addEventListener('keydown', (e) => {
+        if (lista.style.display !== 'block' && (e.key === 'ArrowDown' || e.key === 'Enter')) { abrir(); return; }
+        if (e.key === 'ArrowDown') { e.preventDefault(); ativo = Math.min(ativo + 1, visiveis.length - 1); renderizar(); }
+        else if (e.key === 'ArrowUp') { e.preventDefault(); ativo = Math.max(ativo - 1, 0); renderizar(); }
+        else if (e.key === 'Enter') {
+            e.preventDefault();
+            const it = visiveis[ativo >= 0 ? ativo : 0];
+            if (it) escolher(it);
+        }
+        else if (e.key === 'Escape') { fechar(); input.blur(); }
+    });
+    btnLimpar.addEventListener('click', () => escolher(itens[0]));
+
+    definirCursos = (cursos) => {
+        itens = cursos.map(c => (typeof c === 'object') ? c : {valor: c, rotulo: c})
+                      .map(c => ({...c, chave: semAcento(c.rotulo + ' ' + c.valor)}));
+        fechar();
+    };
 }
 
 async function carregarPainel() {
