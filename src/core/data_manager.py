@@ -58,11 +58,14 @@ class DataManager:
             ],
             # ENADE e Evasão: estas colunas também formam o CSV exportado na tela
             # de alunos. Ficam de fora dados pessoais sem uso para a coordenação
-            # (filiação, RG, endereço, naturalidade) e colunas que vêm vazias
-            # no relatório (DEF_VISUAL/AUDITIVA/FISICA, DESCR_DISTRITO, DESCR_ESTADO)
+            # (filiação, endereço) e colunas que vêm vazias no relatório
+            # (DEF_VISUAL/AUDITIVA/FISICA, DESCR_DISTRITO, DESCR_ESTADO).
+            # No ENADE os dados de identificação (RG, naturalidade...) são mantidos
             'enade': [
-                'COD_CURSO', 'NOME_CURSO', 'NUM_VERSAO', 'MATR_ALUNO', 'NOME_PESSOA', 'CPF',
-                'SEXO', 'DT_NASCIMENTO', 'DESCR_MAIL', 'FONE_CELULAR',
+                'COD_CURSO', 'NOME_CURSO', 'NUM_VERSAO', 'MATR_ALUNO', 'NOME_PESSOA',
+                'SEXO', 'DT_NASCIMENTO', 'NATURALIDADE', 'NATURALIDADE_UF', 'NACIONALIDADE',
+                'CPF', 'RG', 'RG_DATA_EMISSAO', 'RG_ORGAO_EMISSOR', 'RG_ORGAO_EMISSOR_UF',
+                'DESCR_MAIL', 'FONE_CELULAR',
                 'ANO_INGRESSO', 'PERIODO_INGRESSO', 'FORMA_INGRESSO', 'ANO_CONCLUSAO',
                 'PERCENTUAL_DO_CURSO'
             ],
