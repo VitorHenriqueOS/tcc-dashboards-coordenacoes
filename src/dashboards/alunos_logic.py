@@ -90,7 +90,7 @@ def abreviar_curso(nome):
 def _decodificar_bdata(obj):
     """
     O Plotly 6+ (Python) serializa arrays numéricos em formato binário
-    {"dtype": "i8", "bdata": "..."}. O Plotly.js 2.27 usado no template não
+    {"dtype": "i8", "bdata": "..."}. O Plotly.js 2.27 embutido no app (web/vendor/) não
     entende esse formato e passa a desenhar índices (0, 1, 2...) ou nada.
     Aqui convertemos de volta para listas comuns.
     """

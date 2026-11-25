@@ -12,19 +12,35 @@ def verificar_instalacao():
     o executável gerado traz tudo de que precisa, sem abrir a janela.
     """
     try:
+        import re
+        from pathlib import Path
+
         import openpyxl  # noqa: F401  (o pandas importa sob demanda para ler .xlsx)
         import plotly.express as px
         from ui import templates
 
-        for montar in (templates.get_menu_template, templates.get_oferta_template,
-                       templates.get_enade_template, templates.get_evadidos_template):
-            montar()
+        # Plotly.js local (funcionamento offline), na versão esperada por
+        # alunos_logic._decodificar_bdata
+        with open(templates.PLOTLY_JS, encoding='utf-8') as f:
+            cabecalho = f.read(200)
+        if 'plotly.js v2.27.0' not in cabecalho:
+            raise RuntimeError(f"Plotly.js 2.27.0 local ausente ou inválido: {templates.PLOTLY_JS}")
+        uri_plotly = Path(templates.PLOTLY_JS).as_uri()
+
+        paginas = {'menu': templates.get_menu_template(), 'oferta': templates.get_oferta_template(),
+                   'enade': templates.get_enade_template(), 'evadidos': templates.get_evadidos_template()}
+        for nome, html in paginas.items():
+            externos = re.findall(r'(?:src|href)\s*=\s*["\']?((?:https?:)?//[^"\'\s>]+)', html)
+            if externos or 'cdn.plot.ly' in html:
+                raise RuntimeError(f"Página '{nome}' referencia endereços externos: {externos}")
+            if nome != 'menu' and uri_plotly not in html:
+                raise RuntimeError(f"Página '{nome}' não carrega o Plotly.js local")
         # Usa os templates de tema que o Plotly lê dos arquivos de dados do pacote
         px.bar(x=['a'], y=[1], template='plotly_white').to_json()
     except Exception:
         traceback.print_exc()
         return 1
-    print("Verificação concluída: páginas, Plotly e openpyxl disponíveis.")
+    print("Verificação concluída: páginas, Plotly.js 2.27.0 local (sem CDN), Plotly e openpyxl disponíveis.")
     return 0
 
 

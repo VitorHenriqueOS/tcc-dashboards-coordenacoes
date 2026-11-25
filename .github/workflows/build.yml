@@ -66,6 +66,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements-build.txt
 
+      # src/web inclui web/vendor/ (Plotly.js local, para o app funcionar offline)
       - name: Gerar executável com PyInstaller
         run: |
           pyinstaller --clean --noconfirm --onefile --windowed \

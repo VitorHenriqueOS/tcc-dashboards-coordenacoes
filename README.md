@@ -52,8 +52,10 @@ O executável já inclui o Qt. Ele foi gerado no Ubuntu 22.04 e roda em
 distribuições com glibc igual ou mais recente (Ubuntu 22.04+, Debian 12+,
 Fedora, Arch etc.).
 
-> Os gráficos usam a biblioteca Plotly carregada da internet, então é preciso
-> estar conectado para visualizá-los.
+### Funciona offline
+
+Desde a versão 2.0 o aplicativo não precisa de internet: a biblioteca de
+gráficos (Plotly.js) vai junto com o programa.
 
 ### Onde ficam os dados
 
@@ -113,15 +115,36 @@ src/
     alunos/                   # Base comum dos dashboards ENADE e Evasão
       enade_*.html            #   trechos específicos do ENADE
       evadidos_*.html         #   trechos específicos da Evasão
+    vendor/                   # Bibliotecas de terceiros incluídas no app
+      plotly-2.27.0.min.js    #   Plotly.js (licença MIT, ver LICENSE-plotly.js.txt)
 ```
 
 ### Como as páginas são montadas
 
 Cada tela tem seus próprios arquivos `.html`, `.css` e `.js`, ligados no HTML
-por `<link rel="stylesheet" href="...">` e `<script src="..."></script>`. Como a
-janela do pywebview é carregada com `load_html`, o `ui/templates.py` embute
-esses arquivos na página ao abri-la. Marcadores `{{ nome }}` no HTML são
-preenchidos pelo Python (ex.: título e configuração dos painéis de alunos).
+por `<link rel="stylesheet" href="...">` e `<script src="..."></script>`. O
+`ui/templates.py` embute esses arquivos na página ao montá-la. Marcadores
+`{{ nome }}` no HTML são preenchidos pelo Python (ex.: título e configuração dos
+painéis de alunos).
+
+As bibliotecas de `web/vendor/` não são embutidas: o Plotly.js tem ~3,6 MB e o
+WebView2 (Windows) e o Qt (Linux) não aceitam HTML acima de 2 MB passado direto à
+janela. O `templates.py` troca a referência pelo caminho local do arquivo
+(`file:///...`), e o `ui/router.py` grava cada página num arquivo temporário e a
+abre com `load_url`. Endereços da internet (`http://`, `https://`) nas páginas
+geram erro: o app deve funcionar offline.
+
+### Plotly.js local
+
+A cópia do Plotly.js fica em `src/web/vendor/plotly-2.27.0.min.js`, baixada de
+`https://cdn.plot.ly/plotly-2.27.0.min.js`. Ela é distribuída sob a
+[licença MIT](src/web/vendor/LICENSE-plotly.js.txt) (Copyright © Plotly, Inc.).
+
+A versão precisa ser a 2.27: o Plotly 6 do Python serializa arrays em formato
+binário (`bdata`), que o Plotly.js 2.27 não entende, e a função
+`_decodificar_bdata` (`dashboards/alunos_logic.py`) converte esses dados de
+volta para listas. Trocar a versão do Plotly.js exige revisar essa conversão e
+atualizar o nome do arquivo nos `.html`, em `templates.py` e no `--verificar`.
 
 O JavaScript chama o Python por `pywebview.api.<método>()`. Os métodos
 disponíveis são os da classe `AppRouter` em `ui/router.py`.
@@ -140,13 +163,15 @@ Windows**:
 | *Run workflow* (manual) | Igual ao push na `main` |
 
 Antes de empacotar, o workflow executa o programa gerado com `--verificar`, que
-confirma que as páginas, o Plotly e o openpyxl foram incluídos, sem abrir janela.
+confirma, sem abrir janela, que as páginas, o Plotly e o openpyxl foram
+incluídos, que o Plotly.js 2.27.0 local está no executável e que nenhuma
+página referencia endereços da internet (como o CDN do Plotly).
 
 Para publicar uma nova versão:
 
 ```bash
-git tag v1.1.0
-git push origin v1.1.0
+git tag -a v2.1 -m "Versão 2.1"
+git push origin v2.1
 ```
 
 ### Localmente

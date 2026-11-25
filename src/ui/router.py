@@ -1,7 +1,12 @@
+import atexit
+import itertools
 import os
 import re
+import shutil
+import tempfile
 import threading
 import time
+from pathlib import Path
 
 import webview
 
@@ -20,6 +25,9 @@ class AppRouter:
         self._api_oferta = None
         self._api_enade = None
         self._api_evadidos = None
+        self._pasta_paginas = None
+        self._contador_paginas = itertools.count(1)
+        self._pagina_atual = None
 
     def set_window(self, window):
         self._window = window
@@ -71,11 +79,36 @@ class AppRouter:
     def get_status_arquivos(self):
         return self.data_manager.obter_status_arquivos()
 
+    def _gravar_pagina(self, html_content):
+        """
+        Grava a página num arquivo temporário e devolve o endereço file:///.
+        Não usamos load_html porque o WebView2 (Windows) e o Qt (Linux) recusam
+        HTML acima de 2 MB, e as páginas carregam o Plotly.js local (~3,6 MB)
+        por <script src="file:///...">, o que só funciona numa página file://.
+        Cada navegação usa um nome novo (abrir o mesmo endereço pode não recarregar).
+        """
+        if self._pasta_paginas is None:
+            self._pasta_paginas = tempfile.mkdtemp(prefix='DashboardsCoordenacoes-')
+            atexit.register(shutil.rmtree, self._pasta_paginas, ignore_errors=True)
+        caminho = os.path.join(self._pasta_paginas, f'pagina-{next(self._contador_paginas)}.html')
+        # utf-8-sig: páginas de erro sem <meta charset> também mostram acentos
+        with open(caminho, 'w', encoding='utf-8-sig') as f:
+            f.write(html_content)
+        if self._pagina_atual:
+            try:
+                os.remove(self._pagina_atual)
+            except OSError:
+                pass
+        self._pagina_atual = caminho
+        return Path(caminho).as_uri()
+
     def _navegar(self, html_content):
+        url = self._gravar_pagina(html_content)
+
         def transicao():
             time.sleep(0.1)
-            self._window.load_html(html_content)
-            
+            self._window.load_url(url)
+
         threading.Thread(target=transicao, daemon=True).start()
 
     def abrir_oferta(self):

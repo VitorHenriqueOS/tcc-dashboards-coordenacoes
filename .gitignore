@@ -19,5 +19,5 @@ dist/
 *.spec
 
 # Configurações pessoais da IDE
-.idea/workspace.xml
+.idea/
 .vscode/

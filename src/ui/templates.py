@@ -8,15 +8,22 @@ Cada tela tem seus próprios .html, .css e .js:
                    os trechos específicos de cada um em <painel>_glossario.html
                    e <painel>_conteudo.html
 
-A janela é carregada com window.load_html (sem servidor de arquivos), então o
-CSS e o JS locais referenciados no HTML são embutidos ao montar a página;
-endereços externos (CDN do Plotly) continuam como estão. Marcadores
-{{ nome }} no HTML são trocados pelos valores passados a renderizar().
+  web/vendor/   -> Bibliotecas de terceiros (Plotly.js), para o app funcionar offline
+
+O CSS e o JS próprios de cada tela são embutidos na página ao montá-la. As
+bibliotecas de web/vendor/ não são embutidas: o Plotly.js tem ~3,6 MB e o
+WebView2/Qt não aceitam HTML acima de 2 MB passado direto à janela. Elas são
+referenciadas pelo caminho local (file:///...), e o router grava a página
+num arquivo temporário e a abre com load_url (ver ui/router.py).
+Endereços externos (http/https) não são aceitos: o app deve funcionar sem
+internet. Marcadores {{ nome }} no HTML são trocados pelos valores passados
+a renderizar().
 """
 import json
 import os
 import re
 import sys
+from pathlib import Path
 
 
 def _pasta_web():
@@ -28,6 +35,8 @@ def _pasta_web():
 
 
 PASTA_WEB = _pasta_web()
+PASTA_VENDOR = os.path.join(PASTA_WEB, 'vendor')
+PLOTLY_JS = os.path.join(PASTA_VENDOR, 'plotly-2.27.0.min.js')
 
 _RE_CSS = re.compile(r'<link\s+rel="stylesheet"\s+href="([^"]+)"\s*/?>')
 _RE_JS = re.compile(r'<script\s+src="([^"]+)"\s*>\s*</script>')
@@ -39,12 +48,23 @@ def _ler(caminho):
         return f.read()
 
 
-def _externo(endereco):
-    return endereco.startswith(('http://', 'https://', '//'))
+def _local(pagina, pasta, endereco):
+    """Caminho absoluto de um arquivo referenciado no HTML; recusa endereços da internet."""
+    if re.match(r'^([a-z][a-z0-9+.-]*:|//)', endereco, re.IGNORECASE):
+        raise ValueError(f"{pagina} referencia um endereço externo ({endereco}); "
+                         "o app deve funcionar offline, use um arquivo em web/")
+    return os.path.normpath(os.path.join(pasta, endereco))
+
+
+def _vendorizado(caminho):
+    return os.path.dirname(caminho) == os.path.normpath(PASTA_VENDOR)
 
 
 def renderizar(pagina, **contexto):
-    """Lê web/<pagina>, preenche os marcadores e embute o CSS/JS locais."""
+    """
+    Lê web/<pagina>, preenche os marcadores e embute o CSS/JS locais.
+    Scripts de web/vendor/ viram <script src="file:///..."> (ver docstring do módulo).
+    """
     caminho = os.path.join(PASTA_WEB, pagina)
     pasta = os.path.dirname(caminho)
     html = _ler(caminho)
@@ -56,14 +76,15 @@ def renderizar(pagina, **contexto):
         return str(contexto[chave])
 
     def css(m):
-        if _externo(m.group(1)):
-            return m.group(0)
-        return '<style>\n' + _ler(os.path.join(pasta, m.group(1))) + '</style>'
+        return '<style>\n' + _ler(_local(pagina, pasta, m.group(1))) + '</style>'
 
     def js(m):
-        if _externo(m.group(1)):
-            return m.group(0)
-        return '<script>\n' + _ler(os.path.join(pasta, m.group(1))) + '</script>'
+        arquivo = _local(pagina, pasta, m.group(1))
+        if _vendorizado(arquivo):
+            if not os.path.isfile(arquivo):
+                raise FileNotFoundError(f"Biblioteca local não encontrada: {arquivo}")
+            return f'<script src="{Path(arquivo).as_uri()}"></script>'
+        return '<script>\n' + _ler(arquivo) + '</script>'
 
     # Marcadores primeiro: o conteúdo de CSS/JS nunca passa pela substituição
     html = _RE_MARCADOR.sub(marcador, html)
